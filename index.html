@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dieta di Diego</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dieta">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#EEF3F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B1819" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px system-ui,sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+
+/* Layout: app a una colonna per iPhone X. Barra del giorno fissa in alto, schede dei pasti al centro, tre schede in basso.
+   Le quantità stanno in una colonna a parte, in monospazio, come la posologia su una ricetta. */
+:root{
+  --bg:#EEF3F1;
+  --surface:#FFFFFF;
+  --surface-2:#E5EDEA;
+  --fg:#10252A;
+  --muted:#586E73;
+  --line:#D3DEDB;
+  --accent:#0C6A60;
+  --accent-fg:#FFFFFF;
+  --accent-soft:#D4EDE8;
+  --font-display:"Bricolage Grotesque","Avenir Next","Helvetica Neue",Arial,sans-serif;
+  --font-body:"Figtree","Avenir Next","Helvetica Neue",Arial,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B1819;
+    --surface:#132427;
+    --surface-2:#1B3134;
+    --fg:#E3EEEC;
+    --muted:#8FA7AB;
+    --line:#25393C;
+    --accent:#5CCDBE;
+    --accent-fg:#06211E;
+    --accent-soft:#17403E;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B1819;
+  --surface:#132427;
+  --surface-2:#1B3134;
+  --fg:#E3EEEC;
+  --muted:#8FA7AB;
+  --line:#25393C;
+  --accent:#5CCDBE;
+  --accent-fg:#06211E;
+  --accent-soft:#17403E;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--bg);color:var(--fg);
+  font-family:var(--font-body);font-size:16px;line-height:1.45;
+  padding-block:0 104px;
+  -webkit-text-size-adjust:100%;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{
+  max-width:560px;margin-inline:auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* barra superiore */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top .row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-top:10px}
+.eyebrow{margin:0;font:500 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+h1{margin:2px 0 0;font:700 30px/1.1 var(--font-display);letter-spacing:-.01em;text-wrap:balance}
+h1 .d{display:block;font:500 14px var(--font-body);letter-spacing:0;color:var(--muted);margin-top:2px}
+.chip{flex:none;font:500 12px var(--font-mono);padding:5px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);font-variant-numeric:tabular-nums;margin-bottom:4px}
+.chip.full{background:var(--accent);color:var(--accent-fg)}
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding-block:12px}
+.day{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  min-height:56px;padding:4px 0;border:1px solid var(--line);border-radius:10px;background:var(--surface);
+}
+.day .l{font:500 11px var(--font-mono);text-transform:uppercase;color:var(--muted)}
+.day .n{font:600 17px var(--font-display);font-variant-numeric:tabular-nums}
+.day::after{content:"";width:4px;height:4px;border-radius:50%;background:transparent;margin-top:1px}
+.day.today::after{background:var(--accent)}
+.day[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.day[aria-pressed="true"] .l{color:inherit;opacity:.85}
+.day[aria-pressed="true"].today::after{background:var(--accent-fg)}
+
+main{padding-block:4px 0}
+
+/* scheda pasto */
+.meal{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-top:12px;overflow:hidden}
+.meal-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 8px 6px 16px;border-bottom:1px solid var(--line)}
+.meal.done .meal-h{background:var(--accent-soft)}
+.meal-name{margin:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px;font:700 19px var(--font-display)}
+.tag{font:500 10.5px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:3px 8px;border-radius:999px}
+.check{
+  flex:none;width:44px;height:44px;border-radius:50%;
+  border:1.5px solid var(--muted);background:transparent;color:transparent;
+  display:grid;place-items:center;
+}
+.check[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.meal-b{padding:4px 16px 14px}
+.group{list-style:none;margin:0;padding:10px 0;border-top:1px dashed var(--line)}
+.group:first-child{border-top:0}
+.opt{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;align-items:baseline;padding-block:3px}
+.opt.noq{grid-template-columns:minmax(0,1fr)}
+.qty{font:500 13px var(--font-mono);color:var(--accent);white-space:nowrap;font-variant-numeric:tabular-nums}
+.txt{overflow-wrap:anywhere}
+.or{font:500 10.5px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:2px 0 2px 74px}
+.note{margin:6px 0 0;font-size:14px;color:var(--muted)}
+.idea{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--surface-2);font-size:14.5px}
+.idea p{margin:0}
+.idea .lbl,.lbl{margin:0 0 4px;font:500 10.5px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.idea .or2{margin:6px 0;font:500 10.5px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.recipe{margin-top:10px;border:1px solid var(--line);border-radius:10px;font-size:14.5px}
+.recipe summary{padding:12px;min-height:44px;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.recipe summary::-webkit-details-marker{display:none}
+.recipe summary::after{content:"+";font:500 20px var(--font-mono);color:var(--accent)}
+.recipe[open] summary::after{content:"−"}
+.recipe .rb{padding:0 12px 12px}
+.recipe h3{margin:10px 0 2px;font:500 10.5px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.recipe p{margin:0;overflow-wrap:anywhere}
+
+/* sostituzioni */
+.search{padding-top:12px}
+.search input{
+  width:100%;min-height:46px;padding:0 14px;border:1px solid var(--line);border-radius:12px;
+  background:var(--surface);color:var(--fg);font:400 16px var(--font-body);
+  -webkit-appearance:none;appearance:none;
+}
+.search input::placeholder{color:var(--muted)}
+.cat{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-top:12px;padding:14px 16px 14px}
+.cat h2{margin:0 0 10px;font:700 18px var(--font-display)}
+.base{padding:10px 12px;border-radius:10px;background:var(--accent-soft)}
+.eqt{margin-top:12px}
+.eq{list-style:none;margin:0;padding:0}
+.eq li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;align-items:baseline;padding-block:5px;border-top:1px dashed var(--line)}
+.eq li:first-child{border-top:0}
+.empty{margin:24px 0;text-align:center;color:var(--muted)}
+
+/* consigli */
+.lead{margin:16px 0 0;font:600 19px/1.3 var(--font-display);text-wrap:balance}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-top:12px;padding:14px 16px}
+.card h2{margin:0 0 6px;font:700 18px var(--font-display)}
+.card ul{margin:0;padding:0;list-style:none}
+.card li{position:relative;padding:6px 0 6px 16px}
+.card li::before{content:"";position:absolute;left:0;top:.95em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.card p{margin:4px 0}
+.card a{color:var(--accent);font-weight:600}
+
+/* schede in basso */
+.tabs{
+  position:fixed;left:0;right:0;bottom:0;z-index:6;
+  background:var(--surface);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.tabs .wrap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.tab{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  min-height:58px;padding:6px 0;border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:500;
+}
+.tab[aria-current="page"]{color:var(--accent);font-weight:600}
+@media (prefers-reduced-motion: no-preference){
+  .check,.day,.meal-h{transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="row">
+      <div>
+        <p class="eyebrow">Dieta di Diego</p>
+        <h1 id="ttl"></h1>
+      </div>
+      <div class="chip" id="chip"></div>
+    </div>
+    <div class="days" id="days" role="group" aria-label="Giorni della settimana"></div>
+  </div>
+</header>
+
+<main class="wrap" id="main"></main>
+
+<nav class="tabs" aria-label="Sezioni">
+  <div class="wrap">
+    <button class="tab" type="button" data-v="piano">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+      Piano
+    </button>
+    <button class="tab" type="button" data-v="sost">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h13l-3-3M19 16H6l3 3"/></svg>
+      Sostituzioni
+    </button>
+    <button class="tab" type="button" data-v="cons">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.8" cy="7" r="1" fill="currentColor"/><circle cx="4.8" cy="12" r="1" fill="currentColor"/><circle cx="4.8" cy="17" r="1" fill="currentColor"/></svg>
+      Consigli
+    </button>
+  </div>
+</nav>
+
+<script>
+(function(){
+"use strict";
+
+var DN=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
+var DL=["L","M","M","G","V","S","D"];
+var MEALS=[["col","Colazione"],["spu","Spuntino"],["pra","Pranzo"],["mer","Merenda"],["cen","Cena"]];
+
+/* ---------- dati del piano (dal PDF della Dott.ssa Della Corte) ---------- */
+var TEA="Puoi aggiungere 1 tisana e/o 1 caffè senza zuccheri.";
+var YK=[["120 g","yogurt bianco magro (1 vasetto, no marchio Muller)"],["150 g","kefir (da bere o in vasetto)"]];
+var VERD=[["200 g","verdure o ortaggi misti, preferibilmente sia crudi che cotti"]];
+var VERD150=[["150 g","verdure o ortaggi misti, preferibilmente sia crudi che cotti"]];
+var OLIO10=[["10 g","olio extravergine di oliva (1 cucchiaio circa)"]];
+var OLIO20=[["20 g","olio extravergine di oliva (2 cucchiai circa)"]];
+var CHOC=["15 g","cioccolato fondente 85% min. cacao"];
+var COCCO=["15 g","noce di cocco (in monoporzioni nei supermercati ben forniti)"];
+var FSECCA=["15 g","frutta secca (mix o una sola tipologia)"];
+var PATA=["30 g","patatine non fritte, per esempio Fiorentini (o San Carlo)"];
+var BARR=["30 g","barretta Misura “protein”"];
+var TRIA=["30 g","triangolini di cereali “Sì e No” Fiorentini (o altra marca)"];
+var GALL=["30 g","gallette di riso ricoperte di cioccolato, Gullon o altra marca (1 monoporzione)"];
+var SN1=[PATA,BARR,TRIA,GALL];
+var SN2=[TRIA,BARR,GALL,PATA];
+var PRIV=[["15 g","biscotti Privolat al miele Misura (2 biscotti)"],["20 g","biscotti Magretti"]];
+var PAN_SPU=[["50 g","pane di grano duro (da alternare con pane integrale o panino soffiato)"],["50 g","panavena Misura, pane in cassetta (2 fette)"]];
+
+var SATCOL={
+  g:[
+    [["150 g","latte Granarolo G+ senza lattosio (o altra marca)"]],
+    [["30 g","farina di avena (o integrale o di riso)"]],
+    [["50 g","albume d’uovo di gallina (puoi usare l’albume in brick)"]],
+    [["50 g","yogurt bianco magro (3 cucchiai circa)"]],
+    [["20 g","marmellata a ridotto tenore di zucchero (2 cucchiaini circa)"],["100 g","mirtillo nero (o lamponi o frutti rossi misti)"]]
+  ],
+  note:"Puoi aggiungere 1 caffè amaro. Se non prepari i pancake, puoi mangiare 2 pancake Milk Pro o Misura.",
+  idea:["Pancake. Puoi triplicare la quantità degli ingredienti e preparare i pancake per 3 giorni consecutivi, conservandoli in frigo in appositi contenitori."],
+  rec:{t:"Pancake",
+    i:"Farina, albume, yogurt, ½ cucchiaino raso di bicarbonato, qualche goccia di limone (o lievito per dolci, quindi niente bicarbonato), 1 cucchiaio di bevanda vegetale o latte.",
+    p:"Sbatti l’albume, unisci lo yogurt e amalgama. Aggiungi la farina e mescola fino a ottenere un composto uniforme e denso. Se è troppo denso, aggiungi la bevanda vegetale (o il latte). Aggiungi il bicarbonato e qualche goccia di limone, mescola. Cuoci per pochi minuti su entrambi i lati in una padella antiaderente ben calda. Aspetta che si formino delle bollicine sulla superficie prima di girarli. A cottura ultimata guarnisci."}
+};
+
+var PLAN=[
+/* Lunedì */
+{
+ col:{g:[
+   [["120 g","yogurt bianco magro (1 vasetto, no marchio Muller)"],["150 g","latte Granarolo G+ senza lattosio"]],
+   [["40 g","muesli"],["40 g","cereali Misura “grani antichi”"],["40 g","cereali Misura “dolcesenza”"]],
+   [CHOC]
+  ],note:TEA,idea:["Yogurt o latte con cereali e scaglie di cioccolato."]},
+ spu:{g:[SN1],idea:["Yogurt con banana a tocchetti, a cui puoi aggiungere cacao amaro e 1 cucchiaino di burro di frutta secca."]},
+ pra:{g:[
+   [["100 g","pane integrale (oppure panino)"]],
+   [["100 g","tonno al naturale (o all’olio di oliva ben sgocciolato)"]],
+   VERD,OLIO10
+  ]},
+ mer:{g:[YK,[["120 g","banana"],["120 g","uva"]],[CHOC,COCCO,FSECCA]]},
+ cen:{g:[
+   [["70 g","pane di segale (o integrale o ai multicereali)"]],
+   [["150 g","petto di pollo (o macinato magro)"]],
+   VERD,OLIO20
+  ],idea:[
+   "Polpettine di macinato magro amalgamate con albume d’uovo e cotte in friggitrice ad aria o al forno, con contorno di verdurine miste.",
+   "Straccetti di petto di pollo (anche panati con pangrattato, crusca d’avena o farina) con zucchine in padella."
+  ]}
+},
+/* Martedì */
+{
+ col:{g:[
+   [["120 g","yogurt bianco magro (no marchio Muller)"],["150 g","latte Granarolo G+ senza lattosio (o altra marca)"]],
+   [["40 g","biscotti “buoni senza” al grano saraceno Cereal (o altra tipologia linea Cereal)"],["40 g","biscotti al grano saraceno Galbusera (o altra tipologia linea Galbusera)"],["40 g","biscotti con cacao e riso soffiato Misura (o altra tipologia linea Misura)"]]
+  ],note:TEA,
+  idea:["Colazione al cucchiaio: stratifica in un bicchiere lo yogurt e i biscottini sbriciolati. Tieni in frigo anche tutta la notte. Aggiungi come topping la cremina al cacao."],
+  rec:{t:"Cremina al cacao",
+   i:"1 cucchiaio di cacao amaro in polvere, acqua o bevanda vegetale o latte vaccino q.b. (circa 3-4 cucchiai).",
+   p:"Versa il cacao amaro in una tazza e aggiungi poca acqua per volta, a filo, mescolando continuamente per evitare i grumi."}},
+ spu:{g:[PAN_SPU,[["50 g","prosciutto crudo di Parma senza grasso (o arrosto di tacchino o bresaola)"]]]},
+ pra:{g:[
+   [["80 g","pasta di semola integrale (da alternare con pasta non integrale)"],["80 g","tortellini secchi (con ripieno di carne o di ricotta)"]],
+   [["15 g","parmigiano (1 monoporzione)"]],
+   VERD,
+   [["10 g","olio extravergine di oliva (1 cucchiaino circa)"]]
+  ],idea:[
+   "Pasta con broccoli e parmigiano + insalatona mista.",
+   "Tortellini in brodo con parmigiano + verdurine miste."
+  ]},
+ mer:{g:[YK,[["150 g","mela Granny Smith (o pera)"]],[["15 g","biscotti Privolat al miele Misura (2 biscotti)"]]]},
+ cen:{g:[
+   [["70 g","pane di segale (o integrale o ai multicereali)"],["200 g","patate"]],
+   [["200 g","pesce spada"],["150 g","filetti di spigola (o di orata)"]],
+   VERD,OLIO10
+  ],idea:["Patate lesse con prezzemolo + tagliata di pesce spada con rucola e pomodorini."],
+  rec:{t:"Tagliata di pesce spada con rucola e pomodorini",
+   i:"Pesce spada, rucola, pomodorini, olio e.v.o., 1 spicchio d’aglio, prezzemolo, basilico, limone e pepe q.b.",
+   p:"Taglia grossolanamente la rucola e trita l’aglio. Sciacqua e asciuga il pesce spada senza togliere la pelle. Adagialo in un piatto, pepa a piacere e ungi i tranci da entrambi i lati con un cucchiaino d’olio, poi mettili da parte. Scalda la griglia o una padella antiaderente e cuoci il pesce spada per 10 minuti, girandolo un paio di volte. In una piccola terrina unisci l’aglio, il prezzemolo, il basilico, la rucola e i pomodorini tagliati in quattro con il resto dell’olio, un pizzico di pepe e il succo di limone. Mescola con una forchetta e fai amalgamare. Quando il pesce è cotto, mettilo su un piatto di portata preriscaldato, versa la salsa e servi."}}
+},
+/* Mercoledì */
+{
+ col:{g:[
+   [["120 g","yogurt bianco magro (no marchio Muller)"],["150 g","latte Granarolo G+ senza lattosio (o altra marca)"],["50 g","yogurt greco bianco magro 0% di grassi (3 cucchiai circa)"]],
+   [["40 g","fette biscottate integrali (consigliate Misura o Baule Volante)"],["40 g","Wasa integrali (o gallette di riso)"]],
+   [["7 g","cacao amaro (1 cucchiaio circa)"]],
+   [["20 g","marmellata a ridotto tenore di zucchero (2 cucchiai circa)"],["7 g","miele (1 cucchiaino circa)"]]
+  ],note:TEA,idea:["Fitmisù."],
+  rec:{t:"Fitmisù",
+   i:"Fette biscottate, yogurt, miele o marmellata, caffè, cannella o cacao q.b.",
+   p:"Bagna la fetta biscottata nel caffè e coprila con uno strato di yogurt a cui hai aggiunto il miele o la marmellata. Ripeti con le altre fette biscottate e guarnisci con cannella o cacao. Il finto tiramisù si può fare al momento oppure la sera prima, tenuto in frigo tutta la notte."}},
+ spu:{g:[SN1]},
+ pra:{g:[
+   [["70 g","pasta di semola integrale"]],
+   [["50 g","Philadelphia light (2 monoporzioni)"]],
+   VERD,OLIO10
+  ],idea:["Pasta con Philadelphia e zucchine + misticanza con olio evo e succo di limone o aceto (anche balsamico, ma niente glassa)."],
+  rec:{t:"Pasta con Philadelphia e zucchine",
+   i:"Pasta, zucchine, Philadelphia, olio e.v.o., 1 spicchio d’aglio, basilico e pepe q.b.",
+   p:"Lava le zucchine e affettale sottilmente. In una padella unisci l’olio, l’aglio e le zucchine e mescola fino a cottura. Cuoci la pasta al dente, scolala e falla saltare a fuoco vivace per un minuto nella padella con le zucchine, poi versa tutto nel piatto con la Philadelphia. Aggiungi il pepe e il basilico."}},
+ mer:{g:[YK,[["250 g","arance"],["120 g","banana"]],[FSECCA,CHOC,COCCO]]},
+ cen:{g:[
+   [["70 g","pane di segale (o integrale o ai multicereali)"]],
+   [["150 g","petto di pollo (o sovraccoscia)"]],
+   VERD,OLIO10
+  ],idea:[
+   "Cotoletta di pollo: panare il petto di pollo (aggiungi al pangrattato erbe e aromi per insaporire) e cuocerlo in padella antiaderente leggermente oleata o in friggitrice ad aria, con contorno di verdurine miste.",
+   "Cubetti di pollo e zucca."
+  ],
+  rec:{t:"Cubetti di pollo e zucca",
+   i:"Pollo, zucca, rosmarino e pepe q.b., olio e.v.o.",
+   p:"Taglia la zucca a dadini e cuocila in padella con un po’ d’acqua, mescolando di tanto in tanto. Intanto taglia il pollo a pezzi più o meno grandi e condiscilo con pepe e rosmarino. Quando la zucca è quasi cotta e l’acqua quasi del tutto evaporata, aggiungi il pollo e cuocilo bene. A fine cottura aggiungi l’olio e servi ben caldo."}}
+},
+/* Giovedì */
+{
+ col:{g:[
+   [["150 g","latte Granarolo G+ senza lattosio (o altra marca)"],["120 g","yogurt bianco magro (1 vasetto)"]],
+   [["40 g","fiocchi di avena (o cereali da prima colazione Misura o farro soffiato)"],["40 g","muesli Vitalis di Cameo"]],
+   [["100 g","mirtillo nero (o fragole)"]],
+   [CHOC]
+  ],note:TEA,idea:["Overnight porridge."],
+  rec:{t:"Overnight porridge",
+   i:"Fiocchi d’avena, latte o acqua, yogurt bianco, 1 cucchiaio di semi di chia (facoltativo).",
+   p:"In un bicchiere stratifica i fiocchi di avena bagnati con latte o acqua, lo yogurt e i semi di chia. Lascia in frigo qualche ora o tutta la notte. Al mattino guarnisci con frutta fresca e scaglie di cioccolato."}},
+ spu:{g:[PAN_SPU,[["50 g","fesa di tacchino (o bresaola o crudo senza grasso)"]]]},
+ pra:{g:[
+   [["50 g","riso integrale (o orzo o farro o pasta integrale)"],["70 g","pane integrale"]],
+   [["180 g","ceci in scatola (o lenticchie, piselli, fagioli)"]],
+   VERD150,OLIO10
+  ],idea:[
+   "Zuppa o insalata di riso con legumi, minestrone di sole verdure.",
+   "Burger di lenticchie e spinaci + pane."
+  ],
+  rec:{t:"Burger di lenticchie e spinaci",
+   i:"Lenticchie, spinaci freschi o surgelati (cotti e strizzati), 20 g di fiocchi d’avena tritati o farina integrale, olio evo, pepe q.b.",
+   p:"Frulla le lenticchie cotte con gli spinaci lessi e ben strizzati fino a ottenere un composto omogeneo. Aggiungi i fiocchi d’avena o la farina e mescola bene. Forma i burger e cuocili in padella antiaderente con un filo d’olio, 3-4 minuti per lato, oppure in friggitrice ad aria a 180 gradi per circa 10 minuti."}},
+ mer:{g:[YK,[["120 g","mandarini"],["120 g","uva"]],PRIV]},
+ cen:{g:[
+   [["70 g","pane integrale (o di segale o ai multicereali)"]],
+   [["200 g","merluzzo (o nasello)"],["250 g","calamaro (o tondini di calamaro)"]],
+   VERD,OLIO20
+  ],idea:["Bocconcini di merluzzo con carciofi."],
+  rec:{t:"Bocconcini di merluzzo con carciofi",
+   i:"Merluzzo, cuori di carciofi (anche surgelati), pepe, prezzemolo, menta e basilico q.b., 1 mestolo di brodo vegetale (o acqua calda), ½ scalogno, olio e.v.o.",
+   p:"In una padella antiaderente metti lo scalogno, un po’ d’acqua, l’olio, il pesce e i cuori di carciofi e fai rosolare per qualche minuto a fuoco vivo. Aggiungi un filo di brodo vegetale (o acqua calda), regola di pepe e prosegui la cottura a fuoco basso per circa 10 minuti. Guarnisci a piacere con erbe fresche."}}
+},
+/* Venerdì */
+{
+ col:{g:[
+   [["120 g","yogurt bianco magro (1 vasetto, no marchio Muller)"],["150 g","latte Granarolo G+ senza lattosio"]],
+   [["40 g","muesli"],["40 g","cereali Misura “grani antichi”"],["40 g","cereali Misura “dolcesenza”"]],
+   [CHOC,["10 g","burro di arachidi"]]
+  ],note:TEA,idea:["Yogurt o latte con cereali e scaglie di cioccolato."]},
+ spu:{g:[SN2]},
+ pra:{g:[
+   [["70 g","pasta di semola integrale (da alternare con pasta non integrale)"]],
+   [["15 g","pesto di basilico (2 cucchiai circa; se non lo mangi, usa 2 cucchiai di olio per condire)"]],
+   VERD,OLIO10
+  ],idea:["Pasta con pesto di basilico e pomodorini + zucca grigliata o vellutata."]},
+ mer:{g:[YK,[["150 g","mela Granny Smith (o pera)"]],[FSECCA,CHOC,COCCO]]},
+ cen:{g:[
+   [["70 g","pane di segale (o integrale o ai multicereali)"],["200 g","patate"]],
+   [["150 g","hamburger di pollo"]],
+   VERD,OLIO10
+  ],idea:["Hamburger alla griglia + insalata mista con carotine lesse, olio evo e prezzemolo."]}
+},
+/* Sabato */
+{
+ col:SATCOL,
+ pra:{g:[
+   [["50 g","couscous (o riso o pasta)"],["70 g","pane integrale"]],
+   [["150 g","piselli in scatola sgocciolati (o lenticchie, ceci, fagioli)"]],
+   [["150 g","seppia (o seppioline)"],["100 g","tonno al naturale (o all’olio di oliva ben sgocciolato)"]],
+   VERD,OLIO10
+  ],idea:["Insalata tiepida di seppioline, piselli e couscous."],
+  rec:{t:"Insalata tiepida di seppioline, piselli e couscous",
+   i:"Seppioline, piselli, couscous, zucchina, olio evo, succo e scorza di ½ limone, prezzemolo, aglio (se gradito), pepe q.b. Facoltativi: paprika o peperoncino.",
+   p:"Cuoci i piselli in acqua bollente se usi quelli freschi o surgelati. Intanto prepara il couscous: versalo in una ciotola, coprilo con pari volume di acqua calda, copri e lascia riposare 5 minuti, poi sgranalo con una forchetta. Scalda una padella antiaderente con l’aglio e pochissima acqua. Aggiungi le seppioline e cuocile a fiamma medio-alta per 5-7 minuti. Aggiungi i piselli e, se vuoi, qualche dadino di zucchina e cuoci tutto per 2 minuti. Unisci couscous, succo di limone, prezzemolo, pepe e olio. Completa con la scorza di limone e la paprika. In alternativa, al posto del couscous usa pane integrale a cubetti tostato in padella."}},
+ mer:{g:[YK,[["120 g","uva"],["120 g","mandarini"]],PRIV]},
+ cen:{g:[[["","Pasto libero (senza esagerare)"]]]}
+},
+/* Domenica */
+{
+ col:{g:SATCOL.g,note:"Come sabato.",idea:["Pancake, come sabato."],rec:SATCOL.rec},
+ pra:{g:[
+   [["70 g","pasta di semola integrale"],["250 g","gnocchi di patate"],["100 g","pane integrale"]],
+   [["150 g","filetto di vitello (o macinato magro)"],["150 g","filetti di spigola (o orata)"]],
+   VERD,OLIO10
+  ],idea:[
+   "Gnocchi al ragù bianco + insalata mista con finocchi, carotine e pomodorini.",
+   "Polpo all’insalata con verdurine + pane."
+  ],
+  rec:{t:"Gnocchi al ragù bianco",
+   i:"Gnocchi, carne macinata, cipolla q.b., ½ carota, sedano, prezzemolo, pepe q.b., olio e.v.o.",
+   p:"Prepara un battuto di cipolla, carota, sedano e prezzemolo e fallo appassire in un tegame con un filo d’acqua per 4-5 minuti a fuoco basso. Aggiungi la carne macinata, alza la fiamma, pepa e mescola bene perché la carne si rosoli in modo uniforme. Lessa gli gnocchi in acqua bollente, scolali e condiscili con il ragù."}},
+ mer:{g:[YK,[["120 g","banana"],["120 g","uva"]],PRIV.slice(0,0).concat([["15 g","biscotti Privolat al miele Misura (2 biscotti)"],["20 g","biscotti Magretti"]])]},
+ cen:{g:[
+   [["70 g","pane integrale"],["50 g","frisella integrale"]],
+   [["80 g","bresaola"],["100 g","tonno al naturale (o all’olio di oliva ben sgocciolato)"]],
+   [["25 g","Philadelphia light (1 monoporzione)"]],
+   VERD,OLIO10
+  ],idea:["Verdurine miste + sandwich con affettato magro e Philadelphia."]}
+}
+];
+
+/* ---------- sostituzioni ---------- */
+var SUBS=[
+ {c:"Cereali a pranzo",b:["70 g","pasta integrale o di grano saraceno"],e:[
+   ["70 g","riso integrale, basmati o venere, orzo, farro, couscous, quinoa, tris di cereali"],
+   ["100 g","pane integrale, di segale o di mix di cereali, oppure 1 panino soffiato"],
+   ["5 fette","Wasa integrali o al sesamo, oppure gallette di cereali (riso, farro, grano saraceno, quinoa…)"],
+   ["60 g","fresella integrale"],
+   ["100 g","pane azzimo"],
+   ["1","piadina, preferibilmente integrale o con cereali poco raffinati e olio evo"],
+   ["250 g","patate (meglio le patate rosse americane, dette anche batata)"]
+  ],n:"Se non prepari un piatto unico, condisci i cereali in modo leggero: passato di pomodoro (pelati, polpa pronta o passata), le verdure previste, oppure in bianco con l’olio previsto, oppure con 1 cucchiaio di pesto di basilico."},
+ {c:"Cereali a cena",b:["70 g","pane integrale, di segale o di mix di cereali, oppure 1 panino soffiato"],e:[
+   ["50 g","riso integrale, basmati o venere, orzo, farro, couscous, quinoa, tris di cereali"],
+   ["50 g","pasta integrale o di grano saraceno"],
+   ["4 fette","Wasa integrali o al sesamo, oppure gallette di cereali (riso, farro, grano saraceno, quinoa…)"],
+   ["50 g","fresella integrale"],
+   ["70 g","pane azzimo"],
+   ["200 g","patate (meglio le patate rosse americane, dette anche batata)"]
+  ]},
+ {c:"Legumi",b:["180 g","legumi precotti in barattolo o in vetro, oppure lo stesso peso da cotti dei legumi secchi: ceci, lenticchie, fagioli, piselli, fave, edamame"],e:[
+   ["150 g","hummus di ceci confezionato (marchio Noa o Lidl) oppure fatto in casa"],
+   ["40 g","legumi crudi secchi, anche misti"]
+  ],n:"Con i legumi il cereale diventa: 70 g di pane, oppure 50 g di cereali (pasta, riso, farro…), oppure 30 g di frisella."},
+ {c:"Carne",b:["150 g","petto di pollo"],e:[
+   ["150 g","tacchino fresco, vitello magro o filetto di maiale"],
+   ["120 g","affettato magro (bresaola, fesa di tacchino o crudo senza grasso), solo quando è indicato nel piano, per non esagerare con la frequenza"]
+  ]},
+ {c:"Pesce",b:["200 g","filetto di merluzzo"],e:[
+   ["250 g","seppia o calamaro"],
+   ["200 g","sogliola, branzino, spigola, orata, pesce spada"],
+   ["100 g","filetti di tonno o sgombro al naturale"],
+   ["100 g","salmone affumicato selvaggio"],
+   ["300 g","polpo o polipetti"],
+   ["150 g","baccalà o stoccafisso"]
+  ]},
+ {c:"Uova",b:["2","uova intere"],e:[
+   ["120 g","albume in brick (o 3 albumi) + 1 uovo intero"]
+  ]},
+ {c:"Formaggi",b:["150 g","fiocchi di latte"],e:[
+   ["100 g","ricotta magra o Philadelphia light"],
+   ["50 g","primosale, feta, stracchino o provola"],
+   ["100 g","bocconcini di mozzarella (saltuariamente)"]
+  ]},
+ {c:"Olio per condire",b:["10 g","olio extravergine di oliva"],e:[
+   ["50 g","avocado"],
+   ["10 g","mandorle, noci o nocciole (8-10 pezzi)"],
+   ["80 g","olive verdi"],
+   ["50 g","olive nere"]
+  ]},
+ {c:"Verdure",b:["150-200 g","verdure crude o cotte"],e:[],
+  n:"Pesale all’inizio, così poi ti regoli anche senza bilancia. Non aggiungere olio extra durante la preparazione. Cotte e crude sono sostituibili senza limiti, e puoi usare quelle surgelate. Per le verdure di stagione consulta il file “Buon inizio” consegnato dopo la prima visita."},
+ {c:"Frutta dello spuntino",b:null,l:"A scelta",e:[
+   ["200 g","mele, ananas (non sciroppato), arance"],
+   ["250 g","melone, macedonia fresca"],
+   ["120 g","mandarini, uva, banana"]
+  ],n:"A ogni tipo di frutta puoi aggiungere 50 g di mirtilli, facendo così una piccola macedonia."}
+];
+
+/* ---------- consigli ---------- */
+var CONS=[
+ {h:"Ritmo della giornata",i:[
+  "Fai colazione entro un’ora dal risveglio.",
+  "Non lasciar passare più di 3-4 ore tra un pasto e lo spuntino, e tra lo spuntino e il pasto successivo. Così la fame non diventa incontrollata e arrivi al pasto con calma.",
+  "Pranzo e cena, spuntini e merende, e anche i giorni della settimana si possono invertire tra loro, in base alle tue esigenze."]},
+ {h:"Abitudini",i:[
+  "Mastica bene e lentamente: digerisci e assimili meglio e senti prima la sazietà.",
+  "Spesso confondiamo la sete con la fame, e finiamo per mangiare troppo e bere poco.",
+  "Cammina 30 minuti al giorno: fa bene al cuore, al metabolismo e all’umore.",
+  "Dormi con regolarità, per resettare le funzioni vitali."]},
+ {h:"Colazioni",i:[
+  "Puoi variare tra le colazioni proposte o ripetere più volte a settimana quella che preferisci. Il consiglio è comunque di variare.",
+  "A tutte le colazioni puoi aggiungere 1 tisana e/o 1 caffè senza zuccheri aggiunti.",
+  "Puoi aggiungere semi di chia o di lino.",
+  "Puoi aggiungere 1 bicchiere di bevanda vegetale al cocco o alla mandorla senza zuccheri aggiunti (per esempio Granarolo o Alpro).",
+  "Se preferisci, 1 volta a settimana puoi mangiare 1 cornetto farcito con marmellata o crema alla nocciola, oppure vuoto, integrale o no, con 1 cappuccino non zuccherato o 1 yogurt bianco magro."]},
+ {h:"Come leggere le quantità",i:[
+  "Le quantità sono in peso a crudo e al netto degli scarti, cioè solo la parte che cucini o mangi cruda.",
+  "Per variare puoi unire 2 secondi a pranzo o a cena, per esempio carne + uova, dimezzando la quantità di entrambi.",
+  "Il consiglio resta seguire il piano com’è, per non cambiare l’apporto giornaliero e settimanale di nutrienti."]},
+ {h:"Condimenti liberi",i:[
+  "In quantità libera: limone, aceto di mele, spezie, erbe aromatiche, aglio, cipolla, porro, salsa di soia non salata.",
+  "Limita il sale a 5 g al giorno al massimo (circa un cucchiaino da tè)."]},
+ {h:"Da evitare",i:[
+  "Condimenti non previsti dal piano (burro, strutto, margarina, panna).",
+  "Insaccati (salame, salsiccia, mortadella e simili).",
+  "Superalcolici e bevande zuccherine (Gatorade, Estathé, energy drink), anche se riportano la dicitura “senza zucchero”."]},
+ {h:"Metodi di cottura",i:[
+  "Carne e pesce: al forno, alla griglia, in umido, lessati, al cartoccio o in padella con olio non preriscaldato.",
+  "Verdure: al forno, grigliate, lessate, al vapore, al microonde o in padella con olio non preriscaldato."]}
+];
+
+/* ---------- utilità ---------- */
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
+function norm(s){return String(s).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();}
+var mem={};
+function get(k){try{var v=localStorage.getItem(k);if(v!==null){return v;}}catch(e){}return mem[k]||null;}
+function put(k,v){
+  if(v){mem[k]=v;}else{delete mem[k];}
+  try{if(v){localStorage.setItem(k,v);}else{localStorage.removeItem(k);}}catch(e){}
+}
+function todayInfo(){var d=new Date();return {d:d,idx:(d.getDay()+6)%7};}
+function ymd(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+
+var T=todayInfo();
+var sel=T.idx;
+var view="piano";
+var main=document.getElementById("main");
+var elTtl=document.getElementById("ttl");
+var elChip=document.getElementById("chip");
+var elDays=document.getElementById("days");
+
+function dateOf(i){return new Date(T.d.getFullYear(),T.d.getMonth(),T.d.getDate()-T.idx+i);}
+function key(i,m){return "dieta:"+ymd(dateOf(i))+":"+m;}
+function mealsOf(i){return MEALS.filter(function(m){return PLAN[i][m[0]];});}
+function fmt(d){return d.toLocaleDateString("it-IT",{day:"numeric",month:"long"});}
+
+/* ---------- vista Piano ---------- */
+function optHtml(o){
+  return '<li class="opt'+(o[0]?'':' noq')+'">'+(o[0]?'<span class="qty">'+esc(o[0])+'</span>':'')+'<span class="txt">'+esc(o[1])+'</span></li>';
+}
+function groupHtml(g){
+  var h="";
+  g.forEach(function(o,i){if(i){h+='<li class="or">oppure</li>';}h+=optHtml(o);});
+  return '<ul class="group">'+h+'</ul>';
+}
+function mealHtml(i,m){
+  var d=PLAN[i][m[0]];
+  var h='<article class="meal" data-m="'+m[0]+'"><div class="meal-h"><h2 class="meal-name">'+esc(m[1])+'<span class="tag" hidden>Prossimo</span></h2>'
+    +'<button class="check" type="button" aria-pressed="false" aria-label="Segna come completato: '+esc(m[1])+'">'
+    +'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button></div><div class="meal-b">';
+  d.g.forEach(function(g){h+=groupHtml(g);});
+  if(d.note){h+='<p class="note">'+esc(d.note)+'</p>';}
+  if(d.idea){
+    h+='<div class="idea"><p class="lbl">Idea di abbinamento</p>';
+    d.idea.forEach(function(t,k){if(k){h+='<p class="or2">oppure</p>';}h+='<p>'+esc(t)+'</p>';});
+    h+='</div>';
+  }
+  if(d.rec){
+    h+='<details class="recipe"><summary>Ricetta: '+esc(d.rec.t)+'</summary><div class="rb"><h3>Ingredienti</h3><p>'+esc(d.rec.i)+'</p><h3>Preparazione</h3><p>'+esc(d.rec.p)+'</p></div></details>';
+  }
+  return h+'</div></article>';
+}
+function renderPiano(){
+  var h="";
+  mealsOf(sel).forEach(function(m){h+=mealHtml(sel,m);});
+  main.innerHTML=h;
+  refreshStatus();
+}
+function refreshStatus(){
+  if(view!=="piano"){return;}
+  var list=mealsOf(sel),done=0,nextSet=false,isToday=(sel===T.idx);
+  list.forEach(function(m){
+    var el=main.querySelector('[data-m="'+m[0]+'"]');
+    if(!el){return;}
+    var on=get(key(sel,m[0]))==="1";
+    if(on){done++;}
+    el.classList.toggle("done",on);
+    el.querySelector(".check").setAttribute("aria-pressed",on?"true":"false");
+    var show=isToday&&!on&&!nextSet;
+    if(show){nextSet=true;}
+    el.querySelector(".tag").hidden=!show;
+  });
+  elChip.textContent=done+" su "+list.length+" pasti";
+  elChip.classList.toggle("full",done===list.length);
+}
+
+/* ---------- vista Sostituzioni ---------- */
+function catHtml(c){
+  var h='<section class="cat"><h2>'+esc(c.c)+'</h2>';
+  if(c.b){
+    h+='<div class="base"><p class="lbl">Porzione nel piano</p><ul class="group" style="padding:0;border:0"><li class="opt"><span class="qty">'+esc(c.b[0])+'</span><span class="txt">'+esc(c.b[1])+'</span></li></ul></div>';
+  }
+  if(c.e.length){
+    h+='<p class="lbl eqt">'+esc(c.l||"Equivale a")+'</p><ul class="eq">';
+    c.e.forEach(function(o){h+='<li><span class="qty">'+esc(o[0])+'</span><span class="txt">'+esc(o[1])+'</span></li>';});
+    h+='</ul>';
+  }
+  if(c.n){h+='<p class="note">'+esc(c.n)+'</p>';}
+  return h+'</section>';
+}
+function drawSubs(v){
+  var n=norm(v.trim()),out="";
+  SUBS.forEach(function(c){
+    var txt=norm(c.c+" "+(c.b?c.b[1]:"")+" "+c.e.map(function(o){return o[1];}).join(" ")+" "+(c.n||""));
+    if(n&&txt.indexOf(n)<0){return;}
+    out+=catHtml(c);
+  });
+  document.getElementById("subs").innerHTML=out||'<p class="empty">Nessun risultato per “'+esc(v.trim())+'”. Prova con un altro alimento.</p>';
+}
+function renderSost(){
+  main.innerHTML='<div class="search"><label class="sr" for="q">Cerca un alimento</label><input id="q" type="search" placeholder="Cerca un alimento, per esempio pollo" autocomplete="off" autocapitalize="off" spellcheck="false"></div><div id="subs"></div>';
+  var q=document.getElementById("q");
+  q.addEventListener("input",function(){drawSubs(q.value);});
+  drawSubs("");
+}
+
+/* ---------- vista Consigli ---------- */
+function renderCons(){
+  var h='<p class="lead">Considera ogni alimento come una medicina necessaria al tuo organismo, nelle dosi e con i tempi consigliati.</p>';
+  CONS.forEach(function(s){
+    h+='<section class="card"><h2>'+esc(s.h)+'</h2><ul>'+s.i.map(function(t){return '<li>'+esc(t)+'</li>';}).join("")+'</ul></section>';
+  });
+  h+='<section class="card"><h2>Il tuo piano</h2><p>Elaborato dalla Dott.ssa Marica Della Corte, biologa nutrizionista.</p><p>Telefono: <a href="tel:+393887936126">388 7936126</a></p><p>Email: <a href="mailto:dottmaricadc@libero.it">dottmaricadc@libero.it</a></p></section>';
+  main.innerHTML=h;
+}
+
+/* ---------- barra, giorni, schede ---------- */
+function renderTop(){
+  var piano=(view==="piano");
+  elDays.hidden=!piano;
+  elChip.hidden=!piano;
+  if(piano){
+    var isToday=(sel===T.idx);
+    elTtl.innerHTML=esc(DN[sel])+'<span class="d">'+(isToday?'oggi, ':'')+esc(fmt(dateOf(sel)))+'</span>';
+    var h="";
+    for(var i=0;i<7;i++){
+      h+='<button class="day'+(i===T.idx?' today':'')+'" type="button" data-i="'+i+'" aria-pressed="'+(i===sel?'true':'false')+'" aria-label="'+esc(DN[i]+" "+fmt(dateOf(i)))+'">'
+        +'<span class="l">'+DL[i]+'</span><span class="n">'+dateOf(i).getDate()+'</span></button>';
+    }
+    elDays.innerHTML=h;
+  }else{
+    elTtl.textContent=(view==="sost")?"Sostituzioni":"Consigli";
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(b){
+    if(b.getAttribute("data-v")===view){b.setAttribute("aria-current","page");}else{b.removeAttribute("aria-current");}
+  });
+}
+function render(){
+  renderTop();
+  if(view==="piano"){renderPiano();}
+  else if(view==="sost"){renderSost();}
+  else{renderCons();}
+}
+
+elDays.addEventListener("click",function(e){
+  var b=e.target.closest(".day");
+  if(!b){return;}
+  sel=parseInt(b.getAttribute("data-i"),10);
+  render();
+  window.scrollTo(0,0);
+});
+main.addEventListener("click",function(e){
+  var b=e.target.closest(".check");
+  if(!b){return;}
+  var m=b.closest(".meal").getAttribute("data-m");
+  var k=key(sel,m);
+  put(k,get(k)==="1"?"":"1");
+  refreshStatus();
+});
+Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(b){
+  b.addEventListener("click",function(){
+    view=b.getAttribute("data-v");
+    render();
+    window.scrollTo(0,0);
+  });
+});
+document.addEventListener("visibilitychange",function(){
+  if(document.hidden){return;}
+  var n=todayInfo();
+  if(ymd(n.d)!==ymd(T.d)){
+    var wasToday=(sel===T.idx);
+    T=n;
+    if(wasToday){sel=T.idx;}
+    render();
+  }
+});
+
+render();
+})();
+</script>
+</body>
+</html>
