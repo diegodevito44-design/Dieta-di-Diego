@@ -1,0 +1,11 @@
+{
+  "name": "Dieta di Diego",
+  "short_name": "Dieta",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EEF3F1",
+  "theme_color": "#0C6A60",
+  "lang": "it",
+  "icons": [{ "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }]
+}
